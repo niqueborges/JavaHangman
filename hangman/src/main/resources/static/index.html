@@ -1,10 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8" />
+    <title>Jogo da Forca</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #hangman { white-space: pre; font-family: monospace; font-size: 16px; }
+        .section { margin-bottom: 20px; }
+    </style>
 </head>
 <body>
-$END$
+
+<h1>🎯 Jogo da Forca</h1>
+
+<div class="section">
+    <label>Palavra secreta: </label>
+    <input type="text" id="word" />
+    <button onclick="startGame()">Iniciar Jogo</button>
+</div>
+
+<div class="section">
+    <label>Letra: </label>
+    <input type="text" id="letter" maxlength="1" />
+    <button onclick="guessLetter()">Enviar Letra</button>
+</div>
+
+<div class="section">
+    <h3>Status do Jogo</h3>
+    <pre id="hangman"></pre>
+    <p><b>Tentativas erradas:</b> <span id="failedAttempts">[]</span></p>
+    <p><b>Status:</b> <span id="status">-</span></p>
+    <p style="color:red"><b id="message"></b></p>
+</div>
+
+<div class="section">
+    <canvas id="chart" width="300" height="300"></canvas>
+</div>
+
+<script>
+    let chart;
+
+    function startGame() {
+        const word = document.getElementById("word").value;
+        fetch(`/game?word=${word}`, { method: "POST" })
+            .then(() => updateStatus());
+    }
+
+    function guessLetter() {
+        const letter = document.getElementById("letter").value;
+        fetch(`/game/guess?letter=${letter}`, { method: "POST" })
+            .then(() => updateStatus());
+    }
+
+    function updateStatus() {
+        fetch("/game/status")
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("hangman").innerText = data.hangmanDrawing;
+                document.getElementById("failedAttempts").innerText = data.failedAttempts.join(", ");
+                document.getElementById("status").innerText = data.status;
+                document.getElementById("message").innerText = data.message || "";
+
+                renderChart(data);
+            });
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('chart').getContext('2d');
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Tentativas Erradas', 'Tentativas Restantes'],
+                datasets: [{
+                    data: [data.failedAttempts.length, 6 - data.failedAttempts.length],
+                    backgroundColor: ['#f44336', '#4caf50']
+                }]
+            }
+        });
+    }
+</script>
+
 </body>
 </html>
